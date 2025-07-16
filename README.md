@@ -48,12 +48,12 @@ A beautiful and feature-rich iOS Todo application built with SwiftUI. This app p
 1. **Clone the repository**:
    ```bash
    git clone <repository-url>
-   cd ModernTodoApp
+   cd TodaysFocus
    ```
 
 2. **Open in Xcode**:
    ```bash
-   open ModernTodoApp.xcodeproj
+   open TodaysFocus.xcodeproj
    ```
 
 3. **Build and Run**:
