@@ -147,7 +147,7 @@ struct TodoListView: View {
                             FilterChip(title: "All", isSelected: selectedSection == .today) {
                                 selectedSection = .today
                             }
-                            ForEach([Category.personal, Category.family, Category.work, Category.shopping], id: \.self) { category in
+                            ForEach([Category.personal, Category.family, Category.work, Category.learning, Category.meetUps], id: \.self) { category in
                                 FilterChip(
                                     title: category.rawValue,
                                     isSelected: selectedSection == .category(category),

@@ -59,7 +59,7 @@ struct AddTodoView: View {
                 }
                 
                 Section(header: Text("Category")) {
-                    let orderedCategories: [Category] = [.personal, .family, .work, .shopping, .learning, .meetUps]
+                    let orderedCategories: [Category] = [.personal, .family, .work, .learning, .meetUps, .shopping]
                     Picker("Category", selection: $category) {
                         ForEach(orderedCategories, id: \.self) { category in
                             HStack {
