@@ -113,6 +113,17 @@ struct SettingsView: View {
                     .foregroundColor(.green)
                 }
                 
+                Section(header: Text("Category Management")) {
+                    ForEach(Category.allCases, id: \.self) { category in
+                        HStack {
+                            Image(systemName: category.icon)
+                                .foregroundColor(Color(category.color))
+                            Text(category.rawValue)
+                                .fontWeight(.medium)
+                        }
+                    }
+                }
+                
                 Section(header: Text("About")) {
                     HStack {
                         Text("Version")
@@ -121,7 +132,7 @@ struct SettingsView: View {
                             .foregroundColor(.secondary)
                     }
                     
-                    Link(destination: URL(string: "https://example.com/privacy")!) {
+                    Link(destination: URL(string: "https://a-soundhararajan.github.io/TodaysFocus/privacy-policy.html")!) {
                         HStack {
                             Image(systemName: "hand.raised")
                             Text("Privacy Policy")

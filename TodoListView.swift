@@ -4,6 +4,7 @@ struct TodoListView: View {
     @EnvironmentObject var todoManager: TodoManager
     @State private var showingAddTodo = false
     @State private var searchText = ""
+    @Environment(\.verticalSizeClass) var verticalSizeClass
     
     enum HomeSection: Equatable {
         case today
@@ -85,53 +86,21 @@ struct TodoListView: View {
         return (completed, total)
     }
     
-    var debugSortedTodos: String {
-        let todos = filteredTodos.prefix(5) // Show first 5 for debugging
-        return todos.map { "\($0.priority.rawValue): \($0.title)" }.joined(separator: ", ")
-    }
-    
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
                 // Header with stats
                 VStack(spacing: 16) {
                     HStack {
-                        VStack(alignment: .leading) {
-                            Button(action: {
-                                selectedSection = .today
-                            }) {
-                                Text("Today's Focus")
-                                    .font(.title2)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(selectedSection == .today ? .blue : .secondary)
-                            }
-                            .buttonStyle(PlainButtonStyle())
-                            
-                            Text("\(todayStats.completed) of \(todayStats.total) completed")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        
+                        Text("Today's Focus")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(selectedSection == .today ? .blue : .secondary)
                         Spacer()
-                        
-                        VStack(alignment: .trailing) {
-                            Button(action: {
-                                selectedSection = .week
-                            }) {
-                                Text("This Week")
-                                    .font(.title2)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(selectedSection == .week ? .blue : .secondary)
-                            }
-                            .buttonStyle(PlainButtonStyle())
-                            
-                            Text("\(thisWeekStats.completed) of \(thisWeekStats.total) completed")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        
+                        Text("\(todayStats.completed) of \(todayStats.total) completed")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                         Spacer()
-                        
                         Button(action: {
                             showingAddTodo = true
                         }) {
@@ -142,12 +111,14 @@ struct TodoListView: View {
                     }
                     
                     // Filter chips
+                    let portraitCategories: [Category] = [.personal, .family, .work]
+                    let allCategories: [Category] = [.personal, .family, .work, .learning, .meetUps]
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
                             FilterChip(title: "All", isSelected: selectedSection == .today) {
                                 selectedSection = .today
                             }
-                            ForEach([Category.personal, Category.family, Category.work, Category.learning, Category.meetUps], id: \.self) { category in
+                            ForEach((verticalSizeClass == .regular ? portraitCategories : allCategories), id: \.self) { category in
                                 FilterChip(
                                     title: category.rawValue,
                                     isSelected: selectedSection == .category(category),
@@ -159,6 +130,7 @@ struct TodoListView: View {
                         }
                         .padding(.horizontal)
                     }
+                    .frame(height: 40)
                 }
                 .padding()
                 .background(Color(.systemBackground))
@@ -166,15 +138,6 @@ struct TodoListView: View {
                 // Search bar
                 SearchBar(text: $searchText)
                     .padding(.horizontal)
-                
-                // Debug info (temporary)
-                if !filteredTodos.isEmpty {
-                    Text("Debug: \(debugSortedTodos)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .padding(.horizontal)
-                        .padding(.bottom, 8)
-                }
                 
                 // Todo list
                 if filteredTodos.isEmpty {
