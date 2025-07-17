@@ -5,6 +5,7 @@ struct SettingsView: View {
     @State private var showingClearCompletedAlert = false
     @State private var showingClearAllAlert = false
     @State private var showingExportSheet = false
+    @State private var showingWeeklyWinsSheet = false
     
     var body: some View {
         NavigationView {
@@ -105,6 +106,11 @@ struct SettingsView: View {
                         Text("\(todoManager.getOverdueTodos().count)")
                             .foregroundColor(.secondary)
                     }
+                    
+                    Button("Weekly Wins - Current Month") {
+                        showingWeeklyWinsSheet = true
+                    }
+                    .foregroundColor(.green)
                 }
                 
                 Section(header: Text("About")) {
@@ -155,6 +161,9 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showingExportSheet) {
                 ExportView()
+            }
+            .sheet(isPresented: $showingWeeklyWinsSheet) {
+                WeeklyWinsView()
             }
         }
     }
@@ -223,5 +232,180 @@ struct ExportView: View {
                 }
             }
         }
+    }
+}
+
+struct WeeklyWinsView: View {
+    @EnvironmentObject var todoManager: TodoManager
+    @Environment(\.presentationMode) var presentationMode
+    
+    var weeklyWins: [WeeklyWin] {
+        todoManager.getWeeklyWinsForCurrentMonth()
+    }
+    
+    var summary: WeeklyWinsSummary {
+        todoManager.getWeeklyWinsSummary()
+    }
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Summary Card
+                    VStack(spacing: 16) {
+                        Text("Current Month Summary")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                        
+                        HStack(spacing: 30) {
+                            VStack {
+                                Text("\(summary.totalWeeks)")
+                                    .font(.title)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.blue)
+                                Text("Weeks")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            VStack {
+                                Text("\(summary.totalCompleted)")
+                                    .font(.title)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.green)
+                                Text("Completed")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            VStack {
+                                Text(String(format: "%.1f", summary.averagePerWeek))
+                                    .font(.title)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.orange)
+                                Text("Avg/Week")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        
+                        if let bestWeek = summary.bestWeek {
+                            VStack(spacing: 4) {
+                                Text("Best Week")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Text("\(bestWeek.weekTitle) (\(bestWeek.completedTasks.count) tasks)")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.purple)
+                            }
+                        }
+                    }
+                    .padding()
+                    .background(Color(.systemGray6))
+                    .cornerRadius(12)
+                    .padding(.horizontal)
+                    
+                    // Weekly Breakdown
+                    LazyVStack(spacing: 12) {
+                        ForEach(weeklyWins) { weekWin in
+                            WeeklyWinCard(weekWin: weekWin)
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+                .padding(.vertical)
+            }
+            .navigationTitle("Weekly Wins")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        presentationMode.wrappedValue.dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct WeeklyWinCard: View {
+    let weekWin: WeeklyWin
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                VStack(alignment: .leading) {
+                    Text(weekWin.weekTitle)
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                    
+                    Text(weekWin.weekRange)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .trailing) {
+                    Text("\(weekWin.completedTasks.count)")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.green)
+                    
+                    Text("tasks")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            
+            if !weekWin.completedTasks.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Completed Tasks:")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(.secondary)
+                    
+                    ForEach(weekWin.completedTasks.prefix(3)) { task in
+                        HStack {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                                .font(.caption)
+                            
+                            Text(task.title)
+                                .font(.caption)
+                                .lineLimit(1)
+                            
+                            Spacer()
+                            
+                            Text(task.category.rawValue)
+                                .font(.caption2)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color(.systemGray5))
+                                .cornerRadius(4)
+                        }
+                    }
+                    
+                    if weekWin.completedTasks.count > 3 {
+                        Text("+ \(weekWin.completedTasks.count - 3) more...")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            } else {
+                Text("No tasks completed this week")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .italic()
+            }
+        }
+        .padding()
+        .background(Color(.systemBackground))
+        .cornerRadius(8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color(.systemGray4), lineWidth: 1)
+        )
     }
 } 

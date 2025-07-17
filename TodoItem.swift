@@ -10,6 +10,7 @@ struct TodoItem: Identifiable, Codable {
     var reminderDate: Date?
     var reminderEnabled: Bool = true
     var createdAt: Date
+    var completedAt: Date?
     var category: Category
     
     init(title: String, description: String = "", priority: Priority = .medium, dueDate: Date? = nil, category: Category = .personal, reminderDate: Date? = nil) {
@@ -22,6 +23,7 @@ struct TodoItem: Identifiable, Codable {
         self.reminderDate = reminderDate
         self.reminderEnabled = true
         self.createdAt = Date()
+        self.completedAt = nil
         self.category = category
     }
     
@@ -43,6 +45,7 @@ struct TodoItem: Identifiable, Codable {
         self.reminderDate = try container.decodeIfPresent(Date.self, forKey: .reminderDate)
         self.reminderEnabled = try container.decodeIfPresent(Bool.self, forKey: .reminderEnabled) ?? true
         self.createdAt = try container.decode(Date.self, forKey: .createdAt)
+        self.completedAt = try container.decodeIfPresent(Date.self, forKey: .completedAt)
         self.category = try container.decode(Category.self, forKey: .category)
     }
     
@@ -57,11 +60,12 @@ struct TodoItem: Identifiable, Codable {
         try container.encodeIfPresent(reminderDate, forKey: .reminderDate)
         try container.encode(reminderEnabled, forKey: .reminderEnabled)
         try container.encode(createdAt, forKey: .createdAt)
+        try container.encodeIfPresent(completedAt, forKey: .completedAt)
         try container.encode(category, forKey: .category)
     }
     
     private enum CodingKeys: String, CodingKey {
-        case id, title, description, isCompleted, priority, dueDate, reminderDate, reminderEnabled, createdAt, category
+        case id, title, description, isCompleted, priority, dueDate, reminderDate, reminderEnabled, createdAt, completedAt, category
     }
 }
 

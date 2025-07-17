@@ -93,6 +93,11 @@ class TodoManager: ObservableObject {
     func toggleTodo(_ todo: TodoItem) {
         if let index = todos.firstIndex(where: { $0.id == todo.id }) {
             todos[index].isCompleted.toggle()
+            if todos[index].isCompleted {
+                todos[index].completedAt = Date()
+            } else {
+                todos[index].completedAt = nil
+            }
             saveTodos()
         }
     }
@@ -375,4 +380,96 @@ class TodoManager: ObservableObject {
             print("  - Lock Screen Setting: \(settings.lockScreenSetting.rawValue)")
         }
     }
-} 
+    
+    // MARK: - Weekly Wins Methods
+    
+    func getWeeklyWinsForCurrentMonth() -> [WeeklyWin] {
+        let calendar = Calendar.current
+        let now = Date()
+        
+        // Get the start of the current month
+        guard let monthStart = calendar.dateInterval(of: .month, for: now)?.start else {
+            return []
+        }
+        
+        var weeklyWins: [WeeklyWin] = []
+        
+        // Get all weeks in the current month
+        var currentWeekStart = monthStart
+        var weekNumber = 1
+        
+        while currentWeekStart <= now {
+            let weekEnd = calendar.date(byAdding: .weekOfYear, value: 1, to: currentWeekStart)!
+            
+            // Get completed tasks for this week
+            let completedTasks = todos.filter { todo in
+                guard todo.isCompleted, let completionDate = todo.completedAt else { return false }
+                return completionDate >= currentWeekStart && completionDate < weekEnd
+            }
+            
+            let weekWin = WeeklyWin(
+                weekNumber: weekNumber,
+                weekStart: currentWeekStart,
+                weekEnd: weekEnd,
+                completedTasks: completedTasks,
+                totalTasks: completedTasks.count
+            )
+            
+            weeklyWins.append(weekWin)
+            
+            // Move to next week
+            currentWeekStart = weekEnd
+            weekNumber += 1
+        }
+        
+        return weeklyWins
+    }
+    
+    func getWeeklyWinsSummary() -> WeeklyWinsSummary {
+        let weeklyWins = getWeeklyWinsForCurrentMonth()
+        let totalCompleted = weeklyWins.reduce(0) { $0 + $1.completedTasks.count }
+        let averagePerWeek = weeklyWins.isEmpty ? 0 : Double(totalCompleted) / Double(weeklyWins.count)
+        let bestWeek = weeklyWins.max { $0.completedTasks.count < $1.completedTasks.count }
+        
+        return WeeklyWinsSummary(
+            totalWeeks: weeklyWins.count,
+            totalCompleted: totalCompleted,
+            averagePerWeek: averagePerWeek,
+            bestWeek: bestWeek
+        )
+    }
+}
+
+// MARK: - Weekly Win Models
+
+struct WeeklyWin: Identifiable {
+    let id = UUID()
+    let weekNumber: Int
+    let weekStart: Date
+    let weekEnd: Date
+    let completedTasks: [TodoItem]
+    let totalTasks: Int
+    
+    var weekRange: String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        return "\(formatter.string(from: weekStart)) - \(formatter.string(from: weekEnd))"
+    }
+    
+    var weekTitle: String {
+        return "Week \(weekNumber)"
+    }
+}
+
+struct WeeklyWinsSummary {
+    let totalWeeks: Int
+    let totalCompleted: Int
+    let averagePerWeek: Double
+    let bestWeek: WeeklyWin?
+    
+    var bestWeekTitle: String {
+        guard let bestWeek = bestWeek else { return "N/A" }
+        return "Week \(bestWeek.weekNumber) (\(bestWeek.completedTasks.count) tasks)"
+    }
+}
+

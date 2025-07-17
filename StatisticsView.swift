@@ -2,11 +2,24 @@ import SwiftUI
 
 struct StatisticsView: View {
     @EnvironmentObject var todoManager: TodoManager
+    @State private var showingWeeklyWinsSheet = false
     
     var body: some View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 20) {
+                    // Weekly Wins Button
+                    Button("Weekly Wins - Current Month") {
+                        showingWeeklyWinsSheet = true
+                    }
+                    .font(.headline)
+                    .foregroundColor(.green)
+                    .padding(.vertical, 8)
+                    .frame(maxWidth: .infinity)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(10)
+                    .padding(.horizontal)
+                    
                     // Overview cards
                     LazyVGrid(columns: [
                         GridItem(.flexible()),
@@ -54,6 +67,9 @@ struct StatisticsView: View {
             }
             .navigationTitle("Statistics")
             .background(Color(.systemGroupedBackground))
+            .sheet(isPresented: $showingWeeklyWinsSheet) {
+                WeeklyWinsView()
+            }
         }
     }
 }
