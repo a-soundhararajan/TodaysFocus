@@ -17,6 +17,7 @@ class TodoManager: ObservableObject {
         // Set up notification categories immediately
         DispatchQueue.main.async {
             self.setupNotificationCategories()
+            self.requestNotificationPermissions()
         }
     }
     
@@ -198,7 +199,13 @@ class TodoManager: ObservableObject {
     }
     
     private func scheduleReminder(for todo: TodoItem) {
-        guard let reminderDate = todo.reminderDate, reminderDate > Date(), todo.reminderEnabled else { return }
+        guard let reminderDate = todo.reminderDate, reminderDate > Date(), todo.reminderEnabled else { 
+            print("Reminder not scheduled: date=\(todo.reminderDate?.description ?? "nil"), enabled=\(todo.reminderEnabled)")
+            return 
+        }
+        
+        // Cancel any existing notifications for this todo
+        cancelReminder(for: todo)
         
         let content = UNMutableNotificationContent()
         content.title = "Reminder: \(todo.title)"
@@ -215,30 +222,42 @@ class TodoManager: ObservableObject {
         let trigger = UNCalendarNotificationTrigger(dateMatching: triggerDate, repeats: false)
         let request = UNNotificationRequest(identifier: todo.id.uuidString, content: content, trigger: trigger)
         
+        print("Scheduling main reminder for: \(todo.title) at \(reminderDate)")
+        
         // Schedule the main reminder
         UNUserNotificationCenter.current().add(request) { error in
             if let error = error {
-                print("Failed to schedule notification: \(error)")
+                print("Failed to schedule main notification: \(error)")
             } else {
-                print("Successfully scheduled notification for: \(todo.title)")
+                print("Successfully scheduled main notification for: \(todo.title)")
+                
+                // Schedule nagging reminder only after main reminder is scheduled
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    self.scheduleNaggingReminder(for: todo, originalDate: reminderDate)
+                }
             }
         }
-        
-        // Schedule the nagging reminder (10 minutes later, only once)
+    }
+    
+    private func scheduleNaggingReminder(for todo: TodoItem, originalDate: Date) {
         let nagContent = UNMutableNotificationContent()
         nagContent.title = "Nagging Reminder: \(todo.title)"
         nagContent.body = "You still have this task pending."
         nagContent.sound = .default
-        nagContent.categoryIdentifier = content.categoryIdentifier
-        nagContent.userInfo = content.userInfo
+        nagContent.categoryIdentifier = "TODO_REMINDER"
+        nagContent.userInfo = ["todoId": todo.id.uuidString]
         if #available(iOS 15.0, *) {
-            nagContent.interruptionLevel = content.interruptionLevel
-            nagContent.relevanceScore = content.relevanceScore
+            nagContent.interruptionLevel = .timeSensitive
+            nagContent.relevanceScore = 0.8
         }
-        let nagDate = Calendar.current.date(byAdding: .minute, value: 10, to: reminderDate) ?? reminderDate
+        
+        let nagDate = Calendar.current.date(byAdding: .minute, value: 10, to: originalDate) ?? originalDate
         let nagTriggerDate = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: nagDate)
         let nagTrigger = UNCalendarNotificationTrigger(dateMatching: nagTriggerDate, repeats: false)
         let nagRequest = UNNotificationRequest(identifier: "nag-\(todo.id.uuidString)", content: nagContent, trigger: nagTrigger)
+        
+        print("Scheduling nagging reminder for: \(todo.title) at \(nagDate)")
+        
         UNUserNotificationCenter.current().add(nagRequest) { error in
             if let error = error {
                 print("Failed to schedule nagging notification: \(error)")
@@ -437,6 +456,18 @@ class TodoManager: ObservableObject {
             averagePerWeek: averagePerWeek,
             bestWeek: bestWeek
         )
+    }
+    
+    private func requestNotificationPermissions() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
+            DispatchQueue.main.async {
+                if granted {
+                    print("Notification permissions granted")
+                } else {
+                    print("Notification permissions denied: \(error?.localizedDescription ?? "Unknown error")")
+                }
+            }
+        }
     }
 }
 
